@@ -38,8 +38,9 @@ export async function verifySearchShortcuts(root = APP_ROOT) {
   expect(JSON.stringify(actual) === JSON.stringify(expected), 'complete mounted matcher AST differs');
   const key = exactlyOne(findNodes(original.node, (node) => node.type === 'FunctionDeclaration' && node.id.name === 'eG'), 'normalizer');
   const maintainedKey = exported('normalizeSearchShortcutKey');
-  expect(key.params.length === 1 && maintainedKey.params.length === 1 &&
-    JSON.stringify(normalizePlanner(key.body, { e: 'key' })) === JSON.stringify(normalizePlanner(maintainedKey.body, { key: 'key' })), 'key normalizer AST differs');
+  expect(key.params.length === 1 && maintainedKey.params.length === 1 && maintainedKey.params[0].type === 'Identifier' &&
+    JSON.stringify(normalizePlanner(key.body, { e: 'key' })) ===
+      JSON.stringify(normalizePlanner(maintainedKey.body, { [maintainedKey.params[0].name]: 'key' })), 'key normalizer AST differs');
   const bindings = exactlyOne(findNodes(original.node, (node) => node.type === 'AssignmentExpression' && node.left.name === 'e' && node.right.type === 'ArrayExpression' &&
     node.right.elements[0]?.type === 'ObjectExpression' && node.right.elements[0].properties.some((entry) => propertyName(entry.key) === 'keys')), 'actual shortcut configuration').right;
   expect(JSON.stringify(bindings.elements.map((entry) => entry.properties.find((item) => propertyName(item.key) === 'keys').value.elements.map((item) => item.value))) ===

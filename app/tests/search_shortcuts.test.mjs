@@ -102,6 +102,19 @@ test('source proof rejects modifier/editor/normalizer and actual UI-wiring mutat
   }
 });
 
+test('normalizer proof binds the maintained parameter, not the name key', async (t) => {
+  const declaration = 'normalizeSearchShortcutKey(key) { return key.toLowerCase(); }';
+  // A half-done rename leaves `key` free: every keydown would throw ReferenceError.
+  await assert.rejects(verifySearchShortcuts(await mutated(t, KERNEL, (text) => text.replace(declaration,
+    'normalizeSearchShortcutKey(value) { return key.toLowerCase(); }'))), /unresolved planner bindings: key/);
+  // A consistent rename is alpha-equivalent to the captured normalizer.
+  const { kernelSha256, ...renamed } = await verifySearchShortcuts(await mutated(t, KERNEL, (text) => text.replace(declaration,
+    'normalizeSearchShortcutKey(value) { return value.toLowerCase(); }')));
+  const { kernelSha256: savedKernelSha256, ...saved } = JSON.parse(await readFile(path.join(APP_ROOT, PROOF), 'utf8'));
+  assert.notEqual(kernelSha256, savedKernelSha256);
+  assert.deepEqual(renamed, saved);
+});
+
 test('the separately published Escape render handler does not stale this bounded caller binding', async (t) => {
   // PR886's real render event is outside the shortcut effect. This proves only
   // static proof composability, not a new browser/union qualification.
